@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>사용자 인증 및 갱신</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root { --primary: #3498db; --bg: #1a1a1a; --card: #2c3e50; --error: #e74c3c; --highlight: #f1c40f; --disabled: #7f8c8d; }
+        body { font-family: sans-serif; background-color: var(--bg); color: white; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        
+        .wrapper { display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap; justify-content: center; padding: 20px; max-width: 950px; width: 100%; }
+        
+        .container { flex: 1; min-width: 320px; max-width: 420px; background: var(--card); padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        /* 제품 정보 입력 섹션 */
+        .section { margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px dashed #5d6d7e; }
+        #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 10px; display: none; }
+        
+        .input-group { text-align: left; margin-bottom: 15px; }
+        label { font-size: 0.85rem; color: #bdc3c7; font-weight: bold; }
+        input { width: 100%; box-sizing: border-box; background: #34495e; border: 2px solid #5d6d7e; border-radius: 10px; padding: 12px; color: white; font-size: 1.1rem; margin-top: 5px; outline: none; transition: 0.3s; }
+        input:disabled { background: #2c3e50; border-color: #34495e; color: #7f8c8d; cursor: not-allowed; }
+        input:focus { border-color: var(--primary); }
+
+        /* 결과 상자 */
+        .result-box { margin-top: 20px; padding: 15px; background: #1a252f; border-radius: 12px; min-height: 70px; display: flex; flex-direction: column; justify-content: center; }
+        #final-result { font-size: 2.5rem; font-weight: 800; color: #2ecc71; }
+        
+        /* 버튼 스타일 */
+        button { width: 100%; border: none; padding: 15px; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-scan { background: #9b59b6; color: white; margin-bottom: 10px; }
+        .btn-main { background: var(--primary); color: white; }
+        button:disabled { background: var(--disabled); opacity: 0.6; cursor: not-allowed; }
+
+        /* 우측 가이드 */
+        .remote-guide { flex: 1; min-width: 320px; max-width: 400px; background: #ffffff; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .remote-guide img { width: 100%; height: auto; max-height: 450px; object-fit: contain; }
+        .guide-text-area { margin-top: 20px; text-align: center; color: #2c3e50; }
+        .remote-label { font-weight: 800; font-size: 1.2rem; display: block; }
+        .sub-label { font-weight: 600; font-size: 1rem; color: #2980b9; }
+
+        @media (max-width: 768px) { .wrapper { flex-direction: column; align-items: center; } }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="container">
+        <h2>사용자 인증 및 갱신</h2>
+
+        <div class="section">
+            <div class="input-group">
+                <label>1단계: 제품 정보 (시리얼 번호)</label>
+                <div id="reader"></div>
+                <input type="text" id="serialInput" placeholder="바코드 스캔 또는 직접 입력" oninput="validateSerial()">
+                <button class="btn-scan" id="scanBtn" onclick="toggleScanner()">바코드 스캔 시작</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="input-group">
+                <label>2단계: 난수 코드 (6자리)</label>
+                <input type="tel" id="randCode" maxlength="6" placeholder="000000" disabled oninput="checkRandCode()" style="text-align: center; letter-spacing: 5px; font-weight: bold; color: var(--highlight);">
+            </div>
+            <button id="submitBtn" class="btn-main" disabled onclick="calculateCode()">코드 발행하기</button>
+        </div>
+
+        <div class="result-box">
+            <div id="final-result">---</div>
+            <div id="status-msg" style="font-size: 0.8rem; margin-top:5px; color:#bdc3c7;">제품 정보를 입력해 주세요.</div>
+        </div>
+    </div>
+
+    <div class="remote-guide">
+        <img src="https://drive.google.com/uc?export=view&id=1XAFpbiJyuk9MpcW4CfzgTBsoA2BdP_1W" alt="리모컨 가이드">
+        <div class="guide-text-area">
+            <span class="remote-label">리모컨 버튼 조작 가이드</span>
+            <span class="sub-label">인증 코드 3자리를 확인하세요</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    const serialInput = document.getElementById('serialInput');
+    const randCodeInput = document.getElementById('randCode');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusMsg = document.getElementById('status-msg');
+    const finalResult = document.getElementById('final-result');
+
+    // [설정] 유효한 시리얼 번호 예시 (실제 데이터에 맞게 수정하세요)
+    const validSerials = ["SN123456", "SN000001", "STRETCH01"];
+
+    // 1. 제품 정보 검증 (바코드 또는 입력)
+    function validateSerial() {
+        const val = serialInput.value.trim().toUpperCase();
+        // 시리얼 번호가 리스트에 있거나, 특정 규칙(예: 8자 이상)을 만족할 때
+        if (validSerials.includes(val) || val.length >= 8) {
+            randCodeInput.disabled = false;
+            statusMsg.innerText = "제품 인증 성공! 난수 코드를 입력하세요.";
+            statusMsg.style.color = "#2ecc71";
+            serialInput.style.borderColor = "#2ecc71";
+        } else {
+            randCodeInput.disabled = true;
+            randCodeInput.value = "";
+            submitBtn.disabled = true;
+            statusMsg.innerText = "올바른 제품 정보를 입력하세요.";
+            statusMsg.style.color = "#e74c3c";
+            serialInput.style.borderColor = "#5d6d7e";
+        }
+    }
+
+    // 2. 난수 코드 6자리 체크 (완료 시 버튼 활성화)
+    function checkRandCode() {
+        if (randCodeInput.value.length === 6 && !isNaN(randCodeInput.value)) {
+            submitBtn.disabled = false;
+            statusMsg.innerText = "코드 발행 준비 완료.";
+        } else {
+            submitBtn.disabled = true;
+        }
+    }
+
+    // 3. 최종 계산 실행
+    function calculateCode() {
+        const n = randCodeInput.value.split('').map(Number);
+        const res1 = (Math.floor(((n[0] * 2 * n[1]) % 100) / 10) % 8) + 1;
+        const res2 = (Math.floor((((n[2] + n[3]) * 9) % 100) / 10) % 8) + 1;
+        const res3 = (Math.floor((((n[4] * 2) + (n[5] * 3)) % 100) / 10) % 8) + 1;
+
+        finalResult.innerText = `${res1}${res2}${res3}`;
+        statusMsg.innerText = "인증 코드가 발행되었습니다.";
+        if (navigator.vibrate) navigator.vibrate(200);
+    }
+
+    // 바코드 스캐너 제어
+    let html5QrcodeScanner;
+    function toggleScanner() {
+        const readerDiv = document.getElementById('reader');
+        if (readerDiv.style.display === 'none' || !readerDiv.style.display) {
+            readerDiv.style.display = 'block';
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+            html5QrcodeScanner.render((text) => {
+                serialInput.value = text;
+                validateSerial();
+                html5QrcodeScanner.clear();
+                readerDiv.style.display = 'none';
+            });
+        } else {
+            html5QrcodeScanner.clear();
+            readerDiv.style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>
