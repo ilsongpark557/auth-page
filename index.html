@@ -8,24 +8,41 @@
     <style>
         :root { --primary: #3498db; --bg: #1a1a1a; --card: #2c3e50; --error: #e74c3c; --highlight: #f1c40f; --disabled: #7f8c8d; }
         body { font-family: sans-serif; background-color: var(--bg); color: white; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        
         .wrapper { display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap; justify-content: center; padding: 20px; max-width: 950px; width: 100%; }
+        
+        /* 메인 입력창 */
         .container { flex: 1; min-width: 320px; max-width: 420px; background: var(--card); padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        /* 섹션 구분 */
         .section { margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px dashed #5d6d7e; }
-        #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 10px; display: none; background: #000; }
+        #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 10px; display: none; background: #000; border: 2px solid var(--primary); }
+        
         .input-group { text-align: left; margin-bottom: 15px; }
-        label { font-size: 0.85rem; color: #bdc3c7; font-weight: bold; }
-        input { width: 100%; box-sizing: border-box; background: #34495e; border: 2px solid #5d6d7e; border-radius: 10px; padding: 12px; color: white; font-size: 1.1rem; margin-top: 5px; outline: none; }
+        label { font-size: 0.85rem; color: #bdc3c7; font-weight: bold; margin-left: 5px; }
+        
+        input { width: 100%; box-sizing: border-box; background: #34495e; border: 2px solid #5d6d7e; border-radius: 10px; padding: 12px; color: white; font-size: 1.1rem; margin-top: 5px; outline: none; transition: 0.3s; }
         input:disabled { background: #2c3e50; border-color: #34495e; color: #7f8c8d; cursor: not-allowed; }
-        .result-box { margin-top: 20px; padding: 15px; background: #1a252f; border-radius: 12px; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
-        #final-result { font-size: 2.2rem; font-weight: 800; color: #2ecc71; line-height: 1.2; }
-        button { width: 100%; border: none; padding: 15px; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        input:focus { border-color: var(--primary); }
+
+        /* 결과 표시 박스 */
+        .result-box { margin-top: 20px; padding: 15px; background: #1a252f; border-radius: 12px; min-height: 90px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid #34495e; }
+        #final-result { font-size: 2rem; font-weight: 800; color: #2ecc71; text-align: center; word-break: keep-all; }
+        #status-msg { font-size: 0.85rem; margin-top: 8px; color: #bdc3c7; font-weight: 500; }
+        
+        /* 버튼 스타일 */
+        button { width: 100%; border: none; padding: 15px; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        button:active { transform: scale(0.98); }
         .btn-scan { background: #9b59b6; color: white; }
         .btn-main { background: var(--primary); color: white; }
         button:disabled { background: var(--disabled); opacity: 0.6; cursor: not-allowed; }
+
+        /* 우측 가이드 이미지 영역 */
         .remote-guide { flex: 1; min-width: 320px; max-width: 400px; background: #ffffff; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .remote-guide img { width: 100%; height: auto; max-height: 450px; object-fit: contain; }
-        .guide-text-area { margin-top: 20px; text-align: center; color: #2c3e50; }
-        @media (max-width: 768px) { .wrapper { flex-direction: column; align-items: center; } }
+        .remote-guide img { width: 100%; height: auto; max-height: 450px; object-fit: contain; border-radius: 10px; }
+        .guide-text-area { margin-top: 20px; text-align: center; color: #2c3e50; border-top: 1px solid #eee; padding-top: 15px; width: 100%; }
+        
+        @media (max-width: 768px) { .wrapper { flex-direction: column; align-items: center; } .container, .remote-guide { width: 95%; } }
     </style>
 </head>
 <body>
@@ -38,7 +55,7 @@
             <div class="input-group">
                 <label>1단계: 제품 정보 (시리얼 번호)</label>
                 <div id="reader"></div>
-                <input type="text" id="serialInput" placeholder="바코드 스캔 또는 입력" oninput="validateSerial()">
+                <input type="text" id="serialInput" placeholder="바코드 스캔 또는 직접 입력" oninput="validateSerial()">
                 <button class="btn-scan" id="scanBtn" onclick="toggleScanner()">바코드 스캔 시작</button>
             </div>
         </div>
@@ -53,76 +70,96 @@
 
         <div class="result-box">
             <div id="final-result">---</div>
-            <div id="status-msg" style="font-size: 0.85rem; margin-top:8px; color:#bdc3c7;">제품 정보를 입력해 주세요.</div>
+            <div id="status-msg">제품 정보를 입력해 주세요.</div>
         </div>
     </div>
 
     <div class="remote-guide">
         <img src="./remote_image.png" alt="리모컨 가이드" id="guideImage" onerror="this.src='https://via.placeholder.com/300x500?text=remote_image.png+Not+Found'">
         <div class="guide-text-area">
-            <b style="font-size:1.2rem;">리모컨 버튼 조작 가이드</b><br>
-            <span style="color:#2980b9; font-weight:600;">인증 코드 3자리를 확인하세요</span>
+            <b style="font-size:1.2rem; display:block; margin-bottom:5px;">리모컨 버튼 조작 가이드</b>
+            <span style="color:#2980b9; font-weight:600; font-size:1rem;">인증 코드 3자리를 확인하세요</span>
         </div>
     </div>
 </div>
 
 <script>
+    // 상수 및 요소 정의
+    const TARGET_SERIAL = "ZKD2FW2P24B0400018";
     const serialInput = document.getElementById('serialInput');
     const randCodeInput = document.getElementById('randCode');
     const submitBtn = document.getElementById('submitBtn');
     const statusMsg = document.getElementById('status-msg');
     const finalResult = document.getElementById('final-result');
 
-    // 비교할 시리얼 번호 값
-    const TARGET_SERIAL = "ZKD2FW2P24B0400018";
-
+    /**
+     * 1단계: 시리얼 번호 검증
+     */
     function validateSerial() {
         const val = serialInput.value.trim();
         
         if (val === TARGET_SERIAL) {
-            // 일치할 경우
+            // 인증 성공
             randCodeInput.disabled = false;
-            statusMsg.innerText = "제품 인증 성공! 난수 코드를 입력하세요.";
+            serialInput.style.borderColor = "#2ecc71";
+            statusMsg.innerText = "인증 성공! 6자리 난수 코드를 입력하세요.";
             statusMsg.style.color = "#2ecc71";
             finalResult.innerText = "READY";
             finalResult.style.color = "#2ecc71";
-            serialInput.style.borderColor = "#2ecc71";
+            finalResult.style.fontSize = "2.5rem";
         } else if (val.length >= TARGET_SERIAL.length || (val.length > 0 && !TARGET_SERIAL.startsWith(val))) {
-            // 일치하지 않거나 입력이 완료되었는데 틀린 경우
+            // 인증 실패 (번호 불일치)
             randCodeInput.disabled = true;
             randCodeInput.value = "";
             submitBtn.disabled = true;
-            statusMsg.innerText = "시리얼 번호가 일치하지 않습니다.";
-            statusMsg.style.color = var(--error);
-            finalResult.innerText = "콜센터로 연락 주세요.";
-            finalResult.style.fontSize = "1.3rem"; // 문구가 길어 폰트 크기 조절
-            finalResult.style.color = "#e74c3c";
             serialInput.style.borderColor = "#e74c3c";
+            statusMsg.innerText = "시리얼 번호가 일치하지 않습니다.";
+            statusMsg.style.color = "#e74c3c";
+            finalResult.innerText = "콜센터로 연락 주세요.";
+            finalResult.style.color = "#e74c3c";
+            finalResult.style.fontSize = "1.5rem";
         } else {
-            // 입력 중
+            // 입력 대기 중
             randCodeInput.disabled = true;
             finalResult.innerText = "---";
-            finalResult.style.fontSize = "2.2rem";
             finalResult.style.color = "#2ecc71";
+            finalResult.style.fontSize = "2.5rem";
         }
     }
 
+    /**
+     * 2단계: 난수 코드 입력 확인
+     */
     function checkRandCode() {
-        submitBtn.disabled = !(randCodeInput.value.length === 6 && !isNaN(randCodeInput.value));
+        if (randCodeInput.value.length === 6 && !isNaN(randCodeInput.value)) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true;
+        }
     }
 
+    /**
+     * 3단계: 최종 계산 및 발행
+     */
     function calculateCode() {
         const n = randCodeInput.value.split('').map(Number);
+        
+        // 정산 공식 적용
         const res1 = (Math.floor(((n[0] * 2 * n[1]) % 100) / 10) % 8) + 1;
         const res2 = (Math.floor((((n[2] + n[3]) * 9) % 100) / 10) % 8) + 1;
         const res3 = (Math.floor((((n[4] * 2) + (n[5] * 3)) % 100) / 10) % 8) + 1;
         
         finalResult.innerText = `${res1}${res2}${res3}`;
-        finalResult.style.fontSize = "3rem";
+        finalResult.style.fontSize = "3.5rem";
         statusMsg.innerText = "인증 코드가 발행되었습니다.";
+        if (navigator.vibrate) navigator.vibrate(200);
     }
 
+    /**
+     * 카메라/스캐너 제어 로직
+     */
     let html5QrCode;
+
     async function toggleScanner() {
         const readerDiv = document.getElementById('reader');
         const scanBtn = document.getElementById('scanBtn');
@@ -131,17 +168,24 @@
             readerDiv.style.display = 'block';
             scanBtn.innerText = "스캔 중단";
             html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 15, qrbox: { width: 280, height: 150 } };
+            
+            const config = { fps: 15, qrbox: { width: 280, height: 160 } };
 
-            html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-                serialInput.value = decodedText;
-                validateSerial();
-                stopScanner(); // 스캔 성공 시 자동 종료
-            }).catch(err => {
-                console.error("Camera error:", err);
-                alert("카메라 권한을 허용해 주세요.");
+            try {
+                await html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    config, 
+                    (decodedText) => {
+                        // 스캔 성공 시
+                        serialInput.value = decodedText;
+                        validateSerial();
+                        stopScanner(); // 성공 즉시 카메라 종료
+                    }
+                );
+            } catch (err) {
+                alert("카메라를 시작할 수 없습니다. HTTPS 연결 또는 카메라 권한을 확인하세요.");
                 stopScanner();
-            });
+            }
         } else {
             stopScanner();
         }
@@ -153,9 +197,10 @@
                 document.getElementById('reader').style.display = 'none';
                 document.getElementById('scanBtn').innerText = "바코드 스캔 시작";
                 html5QrCode = null;
-            }).catch(err => console.error(err));
+            }).catch(err => console.error("Scanner Stop Error", err));
         }
     }
 </script>
+
 </body>
 </html>
