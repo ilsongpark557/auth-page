@@ -16,8 +16,8 @@
         label { font-size: 0.85rem; color: #bdc3c7; font-weight: bold; }
         input { width: 100%; box-sizing: border-box; background: #34495e; border: 2px solid #5d6d7e; border-radius: 10px; padding: 12px; color: white; font-size: 1.1rem; margin-top: 5px; outline: none; }
         input:disabled { background: #2c3e50; border-color: #34495e; color: #7f8c8d; cursor: not-allowed; }
-        .result-box { margin-top: 20px; padding: 15px; background: #1a252f; border-radius: 12px; min-height: 70px; display: flex; flex-direction: column; justify-content: center; }
-        #final-result { font-size: 2.5rem; font-weight: 800; color: #2ecc71; }
+        .result-box { margin-top: 20px; padding: 15px; background: #1a252f; border-radius: 12px; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+        #final-result { font-size: 2.2rem; font-weight: 800; color: #2ecc71; line-height: 1.2; }
         button { width: 100%; border: none; padding: 15px; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-scan { background: #9b59b6; color: white; }
         .btn-main { background: var(--primary); color: white; }
@@ -33,14 +33,16 @@
 <div class="wrapper">
     <div class="container">
         <h2>사용자 인증 및 갱신</h2>
+        
         <div class="section">
             <div class="input-group">
                 <label>1단계: 제품 정보 (시리얼 번호)</label>
                 <div id="reader"></div>
-                <input type="text" id="serialInput" placeholder="바코드 스캔 또는 직접 입력" oninput="validateSerial()">
+                <input type="text" id="serialInput" placeholder="바코드 스캔 또는 입력" oninput="validateSerial()">
                 <button class="btn-scan" id="scanBtn" onclick="toggleScanner()">바코드 스캔 시작</button>
             </div>
         </div>
+
         <div class="section">
             <div class="input-group">
                 <label>2단계: 난수 코드 (6자리)</label>
@@ -48,14 +50,15 @@
             </div>
             <button id="submitBtn" class="btn-main" disabled onclick="calculateCode()">코드 발행하기</button>
         </div>
+
         <div class="result-box">
             <div id="final-result">---</div>
-            <div id="status-msg" style="font-size: 0.8rem; margin-top:5px; color:#bdc3c7;">제품 정보를 입력해 주세요.</div>
+            <div id="status-msg" style="font-size: 0.85rem; margin-top:8px; color:#bdc3c7;">제품 정보를 입력해 주세요.</div>
         </div>
     </div>
 
     <div class="remote-guide">
-        <img src="./remote_image.png" alt="리모컨 가이드" id="guideImage">
+        <img src="./remote_image.png" alt="리모컨 가이드" id="guideImage" onerror="this.src='https://via.placeholder.com/300x500?text=remote_image.png+Not+Found'">
         <div class="guide-text-area">
             <b style="font-size:1.2rem;">리모컨 버튼 조작 가이드</b><br>
             <span style="color:#2980b9; font-weight:600;">인증 코드 3자리를 확인하세요</span>
@@ -70,19 +73,37 @@
     const statusMsg = document.getElementById('status-msg');
     const finalResult = document.getElementById('final-result');
 
-    const validSerials = ["SN123456", "SN000001"]; // 필요시 수정
+    // 비교할 시리얼 번호 값
+    const TARGET_SERIAL = "ZKD2FW2P24B0400018";
 
     function validateSerial() {
-        const val = serialInput.value.trim().toUpperCase();
-        if (validSerials.includes(val) || val.length >= 8) {
+        const val = serialInput.value.trim();
+        
+        if (val === TARGET_SERIAL) {
+            // 일치할 경우
             randCodeInput.disabled = false;
             statusMsg.innerText = "제품 인증 성공! 난수 코드를 입력하세요.";
             statusMsg.style.color = "#2ecc71";
-        } else {
+            finalResult.innerText = "READY";
+            finalResult.style.color = "#2ecc71";
+            serialInput.style.borderColor = "#2ecc71";
+        } else if (val.length >= TARGET_SERIAL.length || (val.length > 0 && !TARGET_SERIAL.startsWith(val))) {
+            // 일치하지 않거나 입력이 완료되었는데 틀린 경우
             randCodeInput.disabled = true;
+            randCodeInput.value = "";
             submitBtn.disabled = true;
-            statusMsg.innerText = "올바른 제품 정보를 입력하세요.";
-            statusMsg.style.color = "#e74c3c";
+            statusMsg.innerText = "시리얼 번호가 일치하지 않습니다.";
+            statusMsg.style.color = var(--error);
+            finalResult.innerText = "콜센터로 연락 주세요.";
+            finalResult.style.fontSize = "1.3rem"; // 문구가 길어 폰트 크기 조절
+            finalResult.style.color = "#e74c3c";
+            serialInput.style.borderColor = "#e74c3c";
+        } else {
+            // 입력 중
+            randCodeInput.disabled = true;
+            finalResult.innerText = "---";
+            finalResult.style.fontSize = "2.2rem";
+            finalResult.style.color = "#2ecc71";
         }
     }
 
@@ -95,7 +116,10 @@
         const res1 = (Math.floor(((n[0] * 2 * n[1]) % 100) / 10) % 8) + 1;
         const res2 = (Math.floor((((n[2] + n[3]) * 9) % 100) / 10) % 8) + 1;
         const res3 = (Math.floor((((n[4] * 2) + (n[5] * 3)) % 100) / 10) % 8) + 1;
+        
         finalResult.innerText = `${res1}${res2}${res3}`;
+        finalResult.style.fontSize = "3rem";
+        statusMsg.innerText = "인증 코드가 발행되었습니다.";
     }
 
     let html5QrCode;
@@ -107,13 +131,16 @@
             readerDiv.style.display = 'block';
             scanBtn.innerText = "스캔 중단";
             html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+            const config = { fps: 15, qrbox: { width: 280, height: 150 } };
 
             html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-                // 바코드 인식 성공 시 실행
                 serialInput.value = decodedText;
                 validateSerial();
-                stopScanner(); // 자동으로 카메라 끄기
+                stopScanner(); // 스캔 성공 시 자동 종료
+            }).catch(err => {
+                console.error("Camera error:", err);
+                alert("카메라 권한을 허용해 주세요.");
+                stopScanner();
             });
         } else {
             stopScanner();
@@ -126,7 +153,7 @@
                 document.getElementById('reader').style.display = 'none';
                 document.getElementById('scanBtn').innerText = "바코드 스캔 시작";
                 html5QrCode = null;
-            });
+            }).catch(err => console.error(err));
         }
     }
 </script>
