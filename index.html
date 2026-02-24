@@ -104,7 +104,7 @@
             serialInput.style.borderColor = "#2ecc71";
             statusMsg.innerText = "제품에 표시된 코드 6자리를 입력하세요.";
             statusMsg.style.color = "#2ecc71";
-            finalResult.innerText = "------";
+            finalResult.innerText = "READY";
             finalResult.style.color = "#2ecc71";
             finalResult.style.fontSize = "2.5rem";
         } else if (val.length >= TARGET_SERIAL.length || (val.length > 0 && !TARGET_SERIAL.startsWith(val))) {
@@ -115,7 +115,7 @@
             serialInput.style.borderColor = "#e74c3c";
             statusMsg.innerText = "콜센터로 연락 주세요.";
             statusMsg.style.color = "#e74c3c";
-            finalResult.innerText = "------";
+            finalResult.innerText = "CHECK";
             finalResult.style.color = "#e74c3c";
             finalResult.style.fontSize = "1.5rem";
         } else {
@@ -204,6 +204,7 @@
 
 </body>
 </html>
+
 
 
 
